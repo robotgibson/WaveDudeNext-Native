@@ -10,7 +10,8 @@ WaveEngine::WaveEngine(int w, int h) : width(w), height(h),
     refractiveIndexMap(w * h, 1.0f), dampingMap(w * h, 0.0f)
 {
     IMG_Init(IMG_INIT_PNG);
-    resetToProceduralGates();
+    // FIXED: Swapped obsolete fallback name out to launch straight into your standalone AND gate profile
+    switchToAndGate();
 }
 
 void WaveEngine::addOpticalPart(std::unique_ptr<OpticalPart> part) {

@@ -99,7 +99,13 @@ public:
 
     void addOpticalPart(std::unique_ptr<OpticalPart> part);
     void initSimulationSpace();
-    void resetToProceduralGates();
+    
+    // UPDATED: Independent allocation profiles per separate logical gating scene tracks
+    void switchToAndGate();
+    void switchToOrGate();
+    void switchToNotGate();
+    void switchToXorGate();
+    
     bool loadSceneFromImage(const std::string& filePath);
     void switchToPrismScene();
     void clearGridFields();
@@ -131,8 +137,6 @@ public:
     void setSelectedNodeIndex(int index) { selectedNodeIndex = index; }
 
     int getActiveSceneMode() const { return activeSceneMode; }
-    
-    // FIXED: Correctly indexed the standard vector container before pulling the inner pointer target
     OpticalPart* getPrismPart() { return (!partsList.empty()) ? partsList[0].get() : nullptr; }
 
     float sampleAmplitude(int x, int y) const { 

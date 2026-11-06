@@ -1,7 +1,6 @@
 #include "engine/WaveEngine.hpp"
 #include <cmath>
 #include <algorithm>
-#include <iostream>
 
 void WaveEngine::stepSimulation() {
     if (isPaused) return;
@@ -40,13 +39,17 @@ void WaveEngine::stepSimulation() {
         
         float radiansOffset = node.phaseOffsetDeg * (3.14159265f / 180.0f);
 
-        if (activeSceneMode == 0) {
+        // CLEAN LOGIC GATE SIMULATION SCENE MAPPINGS
+        if (activeSceneMode == 0) { // AND Gate
             if (i == 0)      next[gridIdx] = inputA_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
-            else if (i == 1) next[gridIdx] = inputB_Active ? std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale) : 0.0f;
-            else if (i == 2) next[gridIdx] = inputA_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
-            else if (i == 3) next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale); 
-            else if (i == 4) next[gridIdx] = inputB_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
-        } else {
+            else if (i == 1) next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale); 
+            else if (i == 2) next[gridIdx] = inputB_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
+        } 
+        else if (activeSceneMode == 4) { // NOT Gate
+            if (i == 0)      next[gridIdx] = inputA_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
+            else if (i == 1) next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale); 
+        }
+        else { // Free canvas, Prisms, OR, or XOR gates
             next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale);
         }
     }
@@ -67,11 +70,6 @@ void WaveEngine::stepSimulation() {
 
 void WaveEngine::updatePixels(uint32_t* pixelBuffer) {
     const float* __restrict renderSource = showIntensityMode ? gridIntensity.data() : gridCurrent.data();
-    std::vector<uint8_t> snapshotRGB;
-    
-    if (saveSnapshotTriggered) {
-        snapshotRGB.resize(width * height * 3, 0);
-    }
 
     #ifdef HAS_OPENMP
     #pragma omp parallel for schedule(static)
@@ -97,20 +95,6 @@ void WaveEngine::updatePixels(uint32_t* pixelBuffer) {
         
         if (refractiveIndexMap[i] > 1.1f) { if (activeColorPalette == 1) b = std::clamp(b + 40, 0, 255); else g = std::clamp(g + 35, 0, 255); }
         if (dampingMap[i] > 0.4f && refractiveIndexMap[i] < 1.1f) { r = std::clamp(r - 20, 0, 255); b = std::clamp(b - 20, 0, 255); g = std::clamp(g - 20, 0, 255); }
-        
         pixelBuffer[i] = (255 << 24) | (r << 16) | (g << 8) | b;
-
-        // FIXED: Intercept and pack matching clean raw data stream bytes into disk targets buffer
-        if (saveSnapshotTriggered) {
-            snapshotRGB[i * 3 + 0] = r;
-            snapshotRGB[i * 3 + 1] = g;
-            snapshotRGB[i * 3 + 2] = b;
-        }
-    }
-
-    // Process and flush active captures cleanly to disk 
-    if (saveSnapshotTriggered) {
-        exportSurfaceToPNG("simulation_snapshot", snapshotRGB);
-        saveSnapshotTriggered = false; // Reset intercept trigger state latch
     }
 }
