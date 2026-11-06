@@ -1,4 +1,5 @@
-#include "exr_exporter_ui.h"  // <--- Include the new split header file
+#include "exr_exporter_ui.h"
+#include "stencil_selector_ui.h" // <--- Include our new split layout control header
 #include "imgui.h"
 #include "engine/WaveEngine.hpp"
 #include "UIRegistry.hpp"
@@ -105,7 +106,6 @@ void renderTuningDesk(WaveEngine& engine, char* pathBuffer, size_t bufferSize,
     PrecisionSlider<float>("Amp Limit", &comparisonThreshold, 0.01f, 1.20f, 0.01f, "Min A = %.2f");
     PrecisionSlider<float>("Target w",   &targetFreqThreshold, 0.03f, 0.18f, 0.001f, "w = %.3f");
 
-    // FIXED: Split logic evaluation markers into separate, parallel metrics outputs
     bool vLogicHigh = (signalRMS >= comparisonThreshold);
     bool fLogicHigh = (signalRMS > 0.02f) && (std::abs(measuredFrequency - targetFreqThreshold) <= frequencyTolerance);
 
@@ -129,7 +129,8 @@ void renderTuningDesk(WaveEngine& engine, char* pathBuffer, size_t bufferSize,
     ImGui::PlotLines("##Oscilloscope", plotCache.data(), 120, 0, nullptr, -1.5f, 1.5f, ImVec2(-1, 50));
     ImGui::PopStyleColor();
 
-    // Call split exporter code seamlessly inside our primary window layout lifetime 
+    // Call split sub-modules cleanly inside our window lifetime boundary loop
+    renderStencilPrecisionControls(engine);
     renderEXRExportLayout(engine); 
 
     ImGui::End();

@@ -61,6 +61,12 @@ struct CustomLaserNode {
 };
 
 class WaveEngine {
+public:
+    enum class StencilPrecision {
+        SecondOrder = 0,
+        FourthOrder = 1
+    };
+
 private:
     int width;
     int height;
@@ -91,6 +97,8 @@ private:
     int activeSceneMode = 0; 
     int activeColorPalette = 0; 
 
+    StencilPrecision activeStencilMode = StencilPrecision::FourthOrder;
+
     void exportSurfaceToPNG(const std::string& filename, const std::vector<uint8_t>& rleBuffer);
 
 public:
@@ -100,7 +108,6 @@ public:
     void addOpticalPart(std::unique_ptr<OpticalPart> part);
     void initSimulationSpace();
     
-    // UPDATED: Independent allocation profiles per separate logical gating scene tracks
     void switchToAndGate();
     void switchToOrGate();
     void switchToNotGate();
@@ -149,9 +156,11 @@ public:
     void setIntensityMode(bool enable) { showIntensityMode = enable; }
     bool getIntensityMode() const { return showIntensityMode; }
 
-    // --- Add these three lines for OpenEXR exporting ---
     float* getPrimaryFieldData() { return gridCurrent.empty() ? nullptr : gridCurrent.data(); }
     int getGridWidth() const { return width; }
     int getGridHeight() const { return height; }
 
+    void setStencilPrecision(StencilPrecision mode) { activeStencilMode = mode; }
+    StencilPrecision getStencilPrecision() const { return activeStencilMode; }
 };
+

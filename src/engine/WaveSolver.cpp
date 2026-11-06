@@ -1,4 +1,5 @@
 #include "engine/WaveEngine.hpp"
+#include "engine/fdtd_stencils.h"
 #include <cmath>
 #include <algorithm>
 
@@ -12,14 +13,16 @@ void WaveEngine::stepSimulation() {
     const float* __restrict nMap = refractiveIndexMap.data();
     const float* __restrict sigmaMap = dampingMap.data();
 
+    // Use boundary contraction limits (y=2, x=2) to prevent out-of-bounds stencil evaluation
     #ifdef HAS_OPENMP
     #pragma omp parallel for schedule(static)
     #endif
-    for (int y = 1; y < height - 1; ++y) {
-        for (int x = 1; x < width - 1; ++x) {
+    for (int y = 2; y < height - 2; ++y) {
+        for (int x = 2; x < width - 2; ++x) {
             int idx = y * width + x;
-            float laplacian = curr[idx + 1] + curr[idx - 1] + curr[idx + width] + curr[idx - width] - 4.0f * curr[idx];
-            float waveSpeed = 0.45f / nMap[idx]; float sigma = sigmaMap[idx];
+            float laplacian = computeSpatialLaplacian(curr, idx, width, activeStencilMode);
+            float waveSpeed = 0.45f / nMap[idx]; 
+            float sigma = sigmaMap[idx];
             next[idx] = (2.0f * curr[idx] - prev[idx] * (1.0f - sigma) + (waveSpeed * waveSpeed * laplacian)) / (1.0f + sigma);
         }
     }
@@ -33,13 +36,12 @@ void WaveEngine::stepSimulation() {
 
         node.phaseValue += node.frequencyOverride;
         
-        int absoluteX = std::clamp(gX + node.offsetX, 1, width - 2);
-        int absoluteY = std::clamp(gY + node.offsetY, 1, height - 2);
+        int absoluteX = std::clamp(gX + node.offsetX, 2, width - 3);
+        int absoluteY = std::clamp(gY + node.offsetY, 2, height - 3);
         int gridIdx = absoluteY * width + absoluteX;
         
         float radiansOffset = node.phaseOffsetDeg * (3.14159265f / 180.0f);
 
-        // CLEAN LOGIC GATE SIMULATION SCENE MAPPINGS
         if (activeSceneMode == 0) { // AND Gate
             if (i == 0)      next[gridIdx] = inputA_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
             else if (i == 1) next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale); 
@@ -49,7 +51,7 @@ void WaveEngine::stepSimulation() {
             if (i == 0)      next[gridIdx] = inputA_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
             else if (i == 1) next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale); 
         }
-        else { // Free canvas, Prisms, OR, or XOR gates
+        else {
             next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale);
         }
     }
@@ -98,3 +100,4 @@ void WaveEngine::updatePixels(uint32_t* pixelBuffer) {
         pixelBuffer[i] = (255 << 24) | (r << 16) | (g << 8) | b;
     }
 }
+
