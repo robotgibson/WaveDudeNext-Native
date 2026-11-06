@@ -51,8 +51,8 @@ public:
 };
 
 struct CustomLaserNode {
-    int x = 0;
-    int y = 0;
+    int offsetX = 0; 
+    int offsetY = 0; 
     float phaseValue = 0.0f;
     float phaseOffsetDeg = 0.0f;
     float frequencyOverride = 0.08f;
@@ -75,6 +75,9 @@ private:
     std::vector<CustomLaserNode> customSourceNodes;
     int selectedNodeIndex = -1; 
 
+    int globalOriginX = 0;
+    int globalOriginY = 0;
+
     float globalFrequency = 0.08f;
     float globalAmplitude = 0.8f;
 
@@ -82,6 +85,8 @@ private:
     bool inputB_Active = true;
     bool isPaused = false;
     bool showIntensityMode = false;
+
+    bool saveSnapshotTriggered = false;
 
     int activeSceneMode = 0; 
     int activeColorPalette = 0; 
@@ -106,21 +111,28 @@ public:
     void stepSimulation();
     void updatePixels(uint32_t* pixelBuffer);
 
+    void triggerSnapshotCapture() { saveSnapshotTriggered = true; }
+
     void setGlobalFrequency(float freq) { globalFrequency = freq; }
     void setGlobalAmplitude(float amp) { globalAmplitude = amp; }
     void setColorPalette(int paletteID) { activeColorPalette = paletteID; }
     void toggleInputs(bool bitA, bool bitB) { inputA_Active = bitA; inputB_Active = bitB; }
     
-    // UPDATED: Independent laser nodes interfaces supporting 16 limits max
-    void addIndependentSourceNode(int x, int y);
+    void addIndependentSourceNode(int absoluteX, int absoluteY);
     void clearIndependentSourceNodes();
     std::vector<CustomLaserNode>& getCustomSourceNodes() { return customSourceNodes; }
     const std::vector<CustomLaserNode>& getCustomSourceNodes() const { return customSourceNodes; }
     
+    int getGlobalOriginX() const { return globalOriginX; }
+    int getGlobalOriginY() const { return globalOriginY; }
+    void setGlobalOrigin(int gx, int gy) { globalOriginX = gx; globalOriginY = gy; }
+
     int getSelectedNodeIndex() const { return selectedNodeIndex; }
     void setSelectedNodeIndex(int index) { selectedNodeIndex = index; }
 
     int getActiveSceneMode() const { return activeSceneMode; }
+    
+    // FIXED: Correctly indexed the standard vector container before pulling the inner pointer target
     OpticalPart* getPrismPart() { return (!partsList.empty()) ? partsList[0].get() : nullptr; }
 
     float sampleAmplitude(int x, int y) const { 
