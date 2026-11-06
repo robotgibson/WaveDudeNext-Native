@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
     int probeY = 185;
 
     int activeComboPaletteIdx = 0;
-    const char* paletteThemesList[] = { "Classic Blue / Orange", "Green / Magenta Field", "Monochrome Radar Glow" };
+    const char* paletteThemesList[] = { "Classic Field Tone", "Green / Magenta Field", "Monochrome Radar Glow" };
 
     std::vector<float> plotData(PLOT_SAMPLES, 0.0f);
 
@@ -114,7 +114,13 @@ int main(int argc, char* argv[]) {
         }
 
         ImGui::Separator();
+        ImGui::Text("Visualization Output Layer:");
+        bool currentMode = engine.getIntensityMode();
+        if (ImGui::RadioButton("Amplitude (Ripples)", !currentMode)) { engine.setIntensityMode(false); }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Intensity (Beams)", currentMode)) { engine.setIntensityMode(true); }
 
+        ImGui::Separator();
         ImGui::Text("Render Color Scheme:");
         if (ImGui::Combo("Theme##Palette", &activeComboPaletteIdx, paletteThemesList, IM_ARRAYSIZE(paletteThemesList))) {
             engine.setColorPalette(activeComboPaletteIdx);

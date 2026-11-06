@@ -43,6 +43,7 @@ private:
     
     std::vector<float> gridCurrent;
     std::vector<float> gridPrevious;
+    std::vector<float> gridIntensity; // ADDED: Holds the time-averaged energy footprint of the wave
     std::vector<float> refractiveIndexMap;
     std::vector<float> dampingMap;
 
@@ -58,7 +59,8 @@ private:
     bool inputA_Active = true;
     bool inputB_Active = true;
     bool isPaused = false;
-    
+    bool showIntensityMode = false; // ADDED: Display output routing mode flag
+
     int activeSceneMode = 0; 
     int activeColorPalette = 0; 
     int sourceX = 280;
@@ -84,6 +86,9 @@ public:
     
     void setPauseState(bool pause) { isPaused = pause; }
     bool getPauseState() const { return isPaused; }
+
+    void setIntensityMode(bool enable) { showIntensityMode = enable; }
+    bool getIntensityMode() const { return showIntensityMode; }
 
     void toggleInputs(bool bitA, bool bitB);
     float sampleAmplitude(int x, int y) const;
