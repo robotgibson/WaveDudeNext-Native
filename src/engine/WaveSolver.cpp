@@ -24,17 +24,28 @@ void WaveEngine::stepSimulation() {
         }
     }
 
-    phaseA += frequency; phaseB += frequency; phaseRef += frequency; 
-    if (activeSceneMode == 0) {
-        next[sourceY1 * width + sourceX] = std::sin(phaseA) * sourceAmplitude;
-        next[sourceY2 * width + sourceX] = std::sin(phaseB + phaseOffset) * sourceAmplitude;
-        int idxAndTop = (460 - 16) * width + sourceX; int idxAndCenter = (460) * width + sourceX; int idxAndBottom = (460 + 16) * width + sourceX;
-        next[idxAndTop] = inputA_Active ? std::sin(phaseA) * sourceAmplitude : 0.0f;
-        next[idxAndCenter] = std::sin(phaseRef + 3.14159265f) * (sourceAmplitude * 0.625f); 
-        next[idxAndBottom] = inputB_Active ? std::sin(phaseB) * sourceAmplitude : 0.0f;
-    } else {
-        next[sourceY1 * width + sourceX] = std::sin(phaseA) * sourceAmplitude;
+    // CLEAN UNIFIED INJECTION: Process ALL active emitters uniformly based on their individual properties
+    for (size_t i = 0; i < customSourceNodes.size(); ++i) {
+        auto& node = customSourceNodes[i];
+        if (!node.isActive) continue;
+
+        node.phaseValue += node.frequencyOverride;
+        int gridIdx = node.y * width + node.x;
+        float radiansOffset = node.phaseOffsetDeg * (3.14159265f / 180.0f);
+
+        // Logic gate channel source simulation mappings
+        if (activeSceneMode == 0) {
+            if (i == 0)      next[gridIdx] = inputA_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
+            else if (i == 1) next[gridIdx] = inputB_Active ? std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale) : 0.0f;
+            else if (i == 2) next[gridIdx] = inputA_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
+            else if (i == 3) next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale); // Active Cancel Pin
+            else if (i == 4) next[gridIdx] = inputB_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
+        } else {
+            // General free-canvas experiment space mode
+            next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale);
+        }
     }
+
     gridPrevious = gridCurrent;
     gridCurrent = gridNext;
 
