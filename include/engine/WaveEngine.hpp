@@ -4,7 +4,6 @@
 #include <string>
 #include <memory>
 
-// Base structural class for all modular optical canvas parts
 class OpticalPart {
 protected:
     std::string name;
@@ -14,26 +13,29 @@ protected:
 public:
     OpticalPart(const std::string& n, int x, int y) : name(n), posX(x), posY(y) {}
     virtual ~OpticalPart() = default;
-    
-    // Derived components override this to write their specific refractive index fingerprints
     virtual void burnIntoMap(std::vector<float>& indexMap, int width, int height) = 0;
 };
 
-// Specialized XOR Gate Component Module
 class XorGatePart : public OpticalPart {
 public:
     XorGatePart(const std::string& n, int x, int y) : OpticalPart(n, x, y) {}
     void burnIntoMap(std::vector<float>& indexMap, int width, int height) override;
 };
 
-// Specialized AND Gate Component Module (Requires a constant reference source track)
 class AndGatePart : public OpticalPart {
 public:
     AndGatePart(const std::string& n, int x, int y) : OpticalPart(n, x, y) {}
     void burnIntoMap(std::vector<float>& indexMap, int width, int height) override;
 };
 
-// Core Engine Class managing the collective array pipelines
+class PrismPart : public OpticalPart {
+private:
+    int baseSize;
+public:
+    PrismPart(const std::string& n, int x, int y, int size) : OpticalPart(n, x, y), baseSize(size) {}
+    void burnIntoMap(std::vector<float>& indexMap, int width, int height) override;
+};
+
 class WaveEngine {
 private:
     int width;
@@ -48,8 +50,20 @@ private:
 
     float phaseA = 0.0f;
     float phaseB = 0.0f;
+    float phaseRef = 0.0f;
     float phaseOffset = 0.0f;
-    float frequency = 0.15f;
+    float frequency = 0.08f;
+    float sourceAmplitude = 0.8f;
+
+    bool inputA_Active = true;
+    bool inputB_Active = true;
+    bool isPaused = false;
+    
+    int activeSceneMode = 0; 
+    int activeColorPalette = 0; 
+    int sourceX = 280;
+    int sourceY1 = 165;
+    int sourceY2 = 235;
 
 public:
     WaveEngine(int w, int h);
@@ -57,7 +71,21 @@ public:
 
     void addOpticalPart(std::unique_ptr<OpticalPart> part);
     void initSimulationSpace();
+    void resetToProceduralGates();
+    bool loadSceneFromImage(const std::string& filePath);
+    void switchToPrismScene();
+    void clearGridFields();
+
     void stepSimulation();
     void setPhaseShift(float degrees);
+    void setFrequency(float freq);
+    void setAmplitude(float amp);
+    void setColorPalette(int paletteID);
+    
+    void setPauseState(bool pause) { isPaused = pause; }
+    bool getPauseState() const { return isPaused; }
+
+    void toggleInputs(bool bitA, bool bitB);
+    float sampleAmplitude(int x, int y) const;
     void updatePixels(uint32_t* pixelBuffer);
 };

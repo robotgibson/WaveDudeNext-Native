@@ -1,0 +1,10 @@
+# Ignore local compiled binary footprints
+build/
+bin/
+obj/
+
+# Ignore IDE workspaces or system configurations
+.vscode/
+.vs/
+.DS_Store
+*.user
