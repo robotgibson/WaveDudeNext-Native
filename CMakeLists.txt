@@ -7,11 +7,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -ffast-math")
 
 find_package(SDL2 REQUIRED)
 find_package(OpenGL REQUIRED)
-
-# Try to find OpenMP optionally instead of making it REQUIRED
 find_package(OpenMP QUIET)
 
-# --- Automated Secure ZIP Download for Dear ImGui ---
+# --- Automated Dependency Fetching for Dear ImGui ---
 include(FetchContent)
 FetchContent_Declare(
     imgui
@@ -22,7 +20,7 @@ FetchContent_MakeAvailable(imgui)
 # Gather our core local layout source files
 file(GLOB SOURCES "src/*.cpp" "src/engine/*.cpp")
 
-# Define the final compiled executable target block and compile with extracted sources
+# Define the final compiled executable target block
 add_executable(${PROJECT_NAME} ${SOURCES}
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
@@ -40,13 +38,14 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${imgui_SOURCE_DIR}/backends
 )
 
+# FIXED: Linked standard package dependencies including native SDL2_image configurations
 target_link_libraries(${PROJECT_NAME} PRIVATE 
     ${SDL2_LIBRARIES}
     ${OPENGL_LIBRARIES}
+    SDL2_image
     m
 )
 
-# Conditionally bind OpenMP targets if discovered on system architecture
 if(OpenMP_CXX_FOUND)
     target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
     target_compile_definitions(${PROJECT_NAME} PRIVATE HAS_OPENMP)

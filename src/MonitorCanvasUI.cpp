@@ -14,12 +14,19 @@ void renderMonitorCanvas(WaveEngine& engine, GLuint texID, std::vector<uint32_t>
     int gX = engine.getGlobalOriginX();
     int gY = engine.getGlobalOriginY();
     
+    // Render left-aligned metrics text field cleanly
     ImGui::TextColored(ImVec4(0.0f, 0.9f, 1.0f, 1.0f), "Performance Metrics: %.1f FPS (%.2f ms/frame)", 
         ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
     
-    ImGui::Spacing();
+    // FIXED: Positioned high-visibility action screenshot button directly on top-right row bounds
+    ImGui::SameLine(ImGui::GetWindowWidth() - 150);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.38f, 0.58f, 1.0f));
+    if (ImGui::Button("Save Image Layout", ImVec2(134, 22))) {
+        engine.triggerSnapshotCapture();
+    }
+    ImGui::PopStyleColor();
     
-    // FIXED: Stripped the conflicting texture uploads out entirely. Just sample the active hardware handle.
+    ImGui::Spacing();
     ImGui::Image((ImTextureID)(intptr_t)texID, ImVec2(800, 600));
     
     if (ImGui::IsItemHovered()) {

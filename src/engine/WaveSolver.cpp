@@ -1,6 +1,7 @@
 #include "engine/WaveEngine.hpp"
 #include <cmath>
 #include <algorithm>
+#include <iostream>
 
 void WaveEngine::stepSimulation() {
     if (isPaused) return;
@@ -24,24 +25,28 @@ void WaveEngine::stepSimulation() {
         }
     }
 
-    // CLEAN UNIFIED INJECTION: Process ALL active emitters uniformly based on their individual properties
+    int gX = globalOriginX;
+    int gY = globalOriginY;
+
     for (size_t i = 0; i < customSourceNodes.size(); ++i) {
         auto& node = customSourceNodes[i];
         if (!node.isActive) continue;
 
         node.phaseValue += node.frequencyOverride;
-        int gridIdx = node.y * width + node.x;
+        
+        int absoluteX = std::clamp(gX + node.offsetX, 1, width - 2);
+        int absoluteY = std::clamp(gY + node.offsetY, 1, height - 2);
+        int gridIdx = absoluteY * width + absoluteX;
+        
         float radiansOffset = node.phaseOffsetDeg * (3.14159265f / 180.0f);
 
-        // Logic gate channel source simulation mappings
         if (activeSceneMode == 0) {
             if (i == 0)      next[gridIdx] = inputA_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
             else if (i == 1) next[gridIdx] = inputB_Active ? std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale) : 0.0f;
             else if (i == 2) next[gridIdx] = inputA_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
-            else if (i == 3) next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale); // Active Cancel Pin
+            else if (i == 3) next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale); 
             else if (i == 4) next[gridIdx] = inputB_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
         } else {
-            // General free-canvas experiment space mode
             next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale);
         }
     }
@@ -62,6 +67,11 @@ void WaveEngine::stepSimulation() {
 
 void WaveEngine::updatePixels(uint32_t* pixelBuffer) {
     const float* __restrict renderSource = showIntensityMode ? gridIntensity.data() : gridCurrent.data();
+    std::vector<uint8_t> snapshotRGB;
+    
+    if (saveSnapshotTriggered) {
+        snapshotRGB.resize(width * height * 3, 0);
+    }
 
     #ifdef HAS_OPENMP
     #pragma omp parallel for schedule(static)
@@ -71,7 +81,8 @@ void WaveEngine::updatePixels(uint32_t* pixelBuffer) {
         
         if (!showIntensityMode) {
             r = static_cast<uint8_t>(std::clamp((val * 240.0f) + 127.0f, 0.0f, 255.0f));
-            b = static_cast<uint8_t>(std::clamp((-val * 240.0f) + 127.0f, 0.0f, 255.0f)); g = static_cast<uint8_t>(std::fmin(r, b) * 0.2f);
+            b = static_cast<uint8_t>(std::clamp((-val * 240.0f) + 127.0f, 0.0f, 255.0f)); 
+            g = static_cast<uint8_t>(std::clamp(r, b, static_cast<uint8_t>(255)) * 0.15f);
         } else {
             float scaledIntensity = val * 8.0f; 
             if (activeColorPalette == 0) {
@@ -86,6 +97,20 @@ void WaveEngine::updatePixels(uint32_t* pixelBuffer) {
         
         if (refractiveIndexMap[i] > 1.1f) { if (activeColorPalette == 1) b = std::clamp(b + 40, 0, 255); else g = std::clamp(g + 35, 0, 255); }
         if (dampingMap[i] > 0.4f && refractiveIndexMap[i] < 1.1f) { r = std::clamp(r - 20, 0, 255); b = std::clamp(b - 20, 0, 255); g = std::clamp(g - 20, 0, 255); }
+        
         pixelBuffer[i] = (255 << 24) | (r << 16) | (g << 8) | b;
+
+        // FIXED: Intercept and pack matching clean raw data stream bytes into disk targets buffer
+        if (saveSnapshotTriggered) {
+            snapshotRGB[i * 3 + 0] = r;
+            snapshotRGB[i * 3 + 1] = g;
+            snapshotRGB[i * 3 + 2] = b;
+        }
+    }
+
+    // Process and flush active captures cleanly to disk 
+    if (saveSnapshotTriggered) {
+        exportSurfaceToPNG("simulation_snapshot", snapshotRGB);
+        saveSnapshotTriggered = false; // Reset intercept trigger state latch
     }
 }

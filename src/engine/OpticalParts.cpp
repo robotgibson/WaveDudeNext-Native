@@ -43,17 +43,35 @@ void AndGatePart::burnIntoMap(std::vector<float>& indexMap, int width, int heigh
     }
 }
 
+// FIXED: Implemented a robust 2D rotation matrix solver to render arbitrary prism transformations perfectly
 void PrismPart::burnIntoMap(std::vector<float>& indexMap, int width, int height) {
-    int x0 = posX - baseSize / 2; int y0 = posY + baseSize / 2;
-    int x1 = posX + baseSize / 2; int y1 = posY + baseSize / 2;
-    int x2 = posX;                int y2 = posY - (int)(baseSize * 0.866f) / 2;
+    float rad = rotationDegrees * (3.14159265f / 180.0f);
+    float cosA = std::cos(rad);
+    float sinA = std::sin(rad);
+
+    // Baseline coordinates of an equilateral triangle centered at origin (0,0)
+    float hTri = baseSize * 0.866025f;
+    float x0 = -baseSize / 2.0f; float y0 = hTri / 3.0f;
+    float x1 = baseSize / 2.0f;  float y1 = hTri / 3.0f;
+    float x2 = 0.0f;             float y2 = -2.0f * hTri / 3.0f;
+
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
-            float d1 = (x - x1) * (y0 - y1) - (x0 - x1) * (y - y1);
-            float d2 = (x - x2) * (y1 - y2) - (x1 - x2) * (y - y2);
-            float d3 = (x - x0) * (y2 - y0) - (x2 - x0) * (y - y0);
+            // Inverse translation relative to the prism's center position
+            float dx = x - posX;
+            float dy = y - posY;
+
+            // Apply inverse 2D rotational transformations
+            float rotX = dx * cosA + dy * sinA;
+            float rotY = -dx * sinA + dy * cosA;
+
+            // Barycentric edge detection checks if transformed coordinates lie inside the bounds
+            float d1 = (rotX - x1) * (y0 - y1) - (x0 - x1) * (rotY - y1);
+            float d2 = (rotX - x2) * (y1 - y2) - (x1 - x2) * (rotY - y2);
+            float d3 = (rotX - x0) * (y2 - y0) - (x2 - x0) * (rotY - y0);
+
             if (!((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0))) {
-                if (y >= 0 && y < height && x >= 0 && x < width) indexMap[y * width + x] = 1.65f;
+                indexMap[y * width + x] = 1.65f; // Set refractive glass index
             }
         }
     }
