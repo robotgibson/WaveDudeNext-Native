@@ -4,8 +4,8 @@
 #include "imgui_impl_opengl3.h"
 #include "engine/WaveEngine.hpp"
 #include <vector>
+#include <cstring>
 
-// Link signatures from external UI components cleanly across translation modules
 void renderTuningDesk(WaveEngine& engine, char* pathBuffer, size_t bufferSize, 
                       float& sliderAmp, float& sliderFreq, float& sliderPhase,
                       bool& bitA, bool& bitB, int& paletteIdx, int& pX, int& pY);
@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
     float sAmp = 0.8f, sFreq = 0.08f, sPhase = 0.0f;
     bool bitA = true, bitB = true;
     int paletteIdx = 0, pX = 360, pY = 185;
-    char pathBuffer[256] = "double_slit_experiment.bmp";
+    char pathBuffer[128] = "double_slit_experiment.png";
 
     while (running) {
         SDL_Event event;
@@ -45,20 +45,31 @@ int main(int argc, char* argv[]) {
             if (event.type == SDL_QUIT) running = false;
         }
 
+        // 1. Wipe the hardware backbuffer canvas clean first thing
+        app.clear(0.10f, 0.10f, 0.12f, 1.0f);
+
+        // 2. Advance the wave simulation physics and dump to pixel matrix arrays
         engine.stepSimulation();
         engine.updatePixels(pixelBuffer.data());
 
+        // 3. FIXED: Securely bind and upload the texture frame stream BEFORE ImGui modifies state mappings
+        glBindTexture(GL_TEXTURE_2D, waveTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 800, 600, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixelBuffer.data());
+
+        // 4. Initialize the ImGui interface frame tree context loops
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-        // Direct execution routing blocks call isolated modular ui procedures
+        // 5. Draw the sidebar configurations dashboard and viewport windows
         renderTuningDesk(engine, pathBuffer, sizeof(pathBuffer), sAmp, sFreq, sPhase, bitA, bitB, paletteIdx, pX, pY);
         renderMonitorCanvas(engine, waveTexture, pixelBuffer, pX, pY);
 
-        app.clear(0.10f, 0.10f, 0.12f, 1.0f);
+        // 6. Draw structural overlay paths and flush graphic buffers
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        
+        // 7. Double-buffered presentation swap
         app.swap();
     }
 

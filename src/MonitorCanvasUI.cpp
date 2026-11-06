@@ -2,6 +2,7 @@
 #include <SDL2/SDL_opengl.h>
 #include "engine/WaveEngine.hpp"
 #include <vector>
+#include <cmath>
 
 void renderMonitorCanvas(WaveEngine& engine, GLuint texID, std::vector<uint32_t>& buffer, int& pX, int& pY) {
     ImGui::SetNextWindowPos(ImVec2(320, 10), ImGuiCond_Always);
@@ -10,22 +11,29 @@ void renderMonitorCanvas(WaveEngine& engine, GLuint texID, std::vector<uint32_t>
     
     ImVec2 canvasPos = ImGui::GetCursorScreenPos();
     auto& nodes = engine.getCustomSourceNodes();
+    int gX = engine.getGlobalOriginX();
+    int gY = engine.getGlobalOriginY();
     
-    glBindTexture(GL_TEXTURE_2D, texID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 800, 600, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer.data());
+    ImGui::TextColored(ImVec4(0.0f, 0.9f, 1.0f, 1.0f), "Performance Metrics: %.1f FPS (%.2f ms/frame)", 
+        ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+    
+    ImGui::Spacing();
+    
+    // FIXED: Stripped the conflicting texture uploads out entirely. Just sample the active hardware handle.
     ImGui::Image((ImTextureID)(intptr_t)texID, ImVec2(800, 600));
     
     if (ImGui::IsItemHovered()) {
         ImVec2 mousePos = ImGui::GetMousePos();
         int clickedX = static_cast<int>(mousePos.x - canvasPos.x);
-        int clickedY = static_cast<int>(mousePos.y - canvasPos.y);
+        int clickedY = static_cast<int>(mousePos.y - (canvasPos.y + 24)); 
 
         if (clickedX >= 5 && clickedX < 795 && clickedY >= 5 && clickedY < 595) {
             if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-                // If a left-click falls directly onto an existing source pin, focus it instead of moving the probe
                 bool clickedNode = false;
                 for (size_t i = 0; i < nodes.size(); ++i) {
-                    if (std::abs(nodes[i].x - clickedX) < 8 && std::abs(nodes[i].y - clickedY) < 8) {
+                    int absX = gX + nodes[i].offsetX;
+                    int absY = gY + nodes[i].offsetY;
+                    if (std::abs(absX - clickedX) < 8 && std::abs(absY - clickedY) < 8) {
                         engine.setSelectedNodeIndex(static_cast<int>(i)); clickedNode = true; break;
                     }
                 }
@@ -38,19 +46,29 @@ void renderMonitorCanvas(WaveEngine& engine, GLuint texID, std::vector<uint32_t>
     }
     
     ImDrawList* drawList = ImGui::GetWindowDrawList();
+    ImVec2 contentOffsetPos = ImVec2(canvasPos.x, canvasPos.y + 24); 
     
-    // Render Cyan Testing Reticle Circle 
-    ImVec2 markerScreenPos = ImVec2(canvasPos.x + pX, canvasPos.y + pY);
+    ImVec2 markerScreenPos = ImVec2(contentOffsetPos.x + pX, contentOffsetPos.y + pY);
     drawList->AddCircle(markerScreenPos, 7.0f, IM_COL32(0, 255, 255, 255), 16, 2.5f);
     drawList->AddCircleFilled(markerScreenPos, 2.5f, IM_COL32(255, 255, 255, 255));
 
-    // Render Emitter Pins
+    if (gX > 0 && gX < 800 && gY > 0 && gY < 600) {
+        ImVec2 globalOriginScreenPos = ImVec2(contentOffsetPos.x + gX, contentOffsetPos.y + gY);
+        drawList->AddRect(ImVec2(globalOriginScreenPos.x - 5, globalOriginScreenPos.y - 5),
+                          ImVec2(globalOriginScreenPos.x + 5, globalOriginScreenPos.y + 5), IM_COL32(255, 255, 255, 180), 0, 0, 1.5f);
+        drawList->AddLine(ImVec2(globalOriginScreenPos.x - 12, globalOriginScreenPos.y), ImVec2(globalOriginScreenPos.x + 12, globalOriginScreenPos.y), IM_COL32(255, 255, 255, 140), 1.0f);
+        drawList->AddLine(ImVec2(globalOriginScreenPos.x, globalOriginScreenPos.y - 12), ImVec2(globalOriginScreenPos.x, globalOriginScreenPos.y + 12), IM_COL32(255, 255, 255, 140), 1.0f);
+    }
+
     int activeFocusIdx = engine.getSelectedNodeIndex();
     for (size_t i = 0; i < nodes.size(); ++i) {
-        ImVec2 sourceScreenPos = ImVec2(canvasPos.x + nodes[i].x, canvasPos.y + nodes[i].y);
+        int absoluteX = gX + nodes[i].offsetX;
+        int absoluteY = gY + nodes[i].offsetY;
+        
+        if (absoluteX < 0 || absoluteX >= 800 || absoluteY < 0 || absoluteY >= 600) continue;
+        ImVec2 sourceScreenPos = ImVec2(contentOffsetPos.x + absoluteX, contentOffsetPos.y + absoluteY);
         
         if (static_cast<int>(i) == activeFocusIdx) {
-            // Draws a glowing golden halo circle around the active sidebar focused element
             drawList->AddCircle(sourceScreenPos, 12.0f, IM_COL32(255, 215, 0, 255), 16, 2.5f);
             drawList->AddCircle(sourceScreenPos, 8.0f, IM_COL32(255, 65, 45, 255), 16, 2.0f);
         } else {
