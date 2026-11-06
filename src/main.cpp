@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
     bool running = true;
     float sAmp = 0.8f, sFreq = 0.08f, sPhase = 0.0f;
     bool bitA = true, bitB = true;
-    int paletteIdx = 0, pX = 360, pY = 185;
+    int paletteIdx = 0, pX = 620, pY = 300;
     char pathBuffer[128] = "double_slit_experiment.png";
 
     while (running) {

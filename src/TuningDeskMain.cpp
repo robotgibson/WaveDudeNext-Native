@@ -2,8 +2,9 @@
 #include "engine/WaveEngine.hpp"
 #include <vector>
 #include <cstring>
+#include <cmath>     // FIXED: Included cmath for std::sqrt validation support
+#include <numeric>
 
-// Forward declare split UI panels cleanly across compilation units
 void renderPrismSettings(WaveEngine& engine);
 void renderEmitterMatrix(WaveEngine& engine, float& sliderAmp, float& sliderFreq, bool& bitA, bool& bitB, int& pX, int& pY);
 
@@ -11,19 +12,33 @@ void renderTuningDesk(WaveEngine& engine, char* pathBuffer, size_t bufferSize,
                       float& sliderAmp, float& sliderFreq, float& sliderPhase,
                       bool& bitA, bool& bitB, int& paletteIdx, int& pX, int& pY) {
     
-    const char* palettes[] = { "Classic Field Tone", "Green / Magenta Field", "Monochrome Radar Glow" };
-
     ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(300, 700), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(300, 720), ImGuiCond_Always);
     ImGui::Begin("Wave Tuning Desk", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
     
     ImGui::Text("Simulation Scene Profile:");
-    if (ImGui::Button("Gates", ImVec2(134, 30))) {
-        engine.resetToProceduralGates(); sliderFreq = 0.08f; engine.setGlobalFrequency(0.08f); pX = 360; pY = 185; 
+    if (ImGui::Button("AND Gate Circuit", ImVec2(134, 24))) {
+        engine.switchToAndGate(); sliderFreq = 0.08f; engine.setGlobalFrequency(0.08f); pX = 620; pY = 300;
+        engine.setSelectedNodeIndex(-1);
     }
     ImGui::SameLine();
-    if (ImGui::Button("Glass Prism", ImVec2(134, 30))) {
+    if (ImGui::Button("OR Gate Circuit", ImVec2(134, 24))) {
+        engine.switchToOrGate(); sliderFreq = 0.08f; engine.setGlobalFrequency(0.08f); pX = 620; pY = 300;
+        engine.setSelectedNodeIndex(-1);
+    }
+    if (ImGui::Button("NOT Gate Circuit", ImVec2(134, 24))) {
+        engine.switchToNotGate(); sliderFreq = 0.08f; engine.setGlobalFrequency(0.08f); pX = 620; pY = 300;
+        engine.setSelectedNodeIndex(-1);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("XOR Gate Circuit", ImVec2(134, 24))) {
+        engine.switchToXorGate(); sliderFreq = 0.08f; engine.setGlobalFrequency(0.08f); pX = 620; pY = 300;
+        engine.setSelectedNodeIndex(-1);
+    }
+
+    if (ImGui::Button("Glass Prism Layout", ImVec2(-1, 26))) {
         engine.switchToPrismScene(); sliderFreq = 0.07f; engine.setGlobalFrequency(0.07f); pX = 550; pY = 380; 
+        engine.setSelectedNodeIndex(-1);
     }
 
     ImGui::Spacing();
@@ -52,18 +67,42 @@ void renderTuningDesk(WaveEngine& engine, char* pathBuffer, size_t bufferSize,
         }
     }
 
-    // Call split sub-panels natively based on current engine state rules
     renderPrismSettings(engine);
     renderEmitterMatrix(engine, sliderAmp, sliderFreq, bitA, bitB, pX, pY);
 
     ImGui::Separator();
-    ImGui::Text("Probe Node Trace (X:%d, Y:%d):", pX, pY);
+    ImGui::Text("Probe Node Diagnostic Analysis:");
+    
     static std::vector<float> plotCache(120, 0.0f);
+    static float comparisonThreshold = 0.35f;
+
+    float currentSample = engine.sampleAmplitude(pX, pY);
     if (!engine.getPauseState()) {
-        plotCache.erase(plotCache.begin()); plotCache.push_back(engine.sampleAmplitude(pX, pY));
+        plotCache.erase(plotCache.begin());
+        plotCache.push_back(currentSample);
     }
+
+    float sumSquares = 0.0f;
+    for (float val : plotCache) { sumSquares += val * val; }
+    float signalRMS = std::sqrt(sumSquares / plotCache.size());
+
+    ImGui::SetNextItemWidth(-1);
+    ImGui::SliderFloat("##LimitTrack", &comparisonThreshold, 0.02f, 1.20f, "Threshold Limit = %.2f");
+
+    bool isGateTriggered = (signalRMS >= comparisonThreshold);
+    if (!isGateTriggered) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.3f, 1.0f));
+        ImGui::Text("LOGIC LEVEL OUTPUT: 0 (LOW)");
+        ImGui::PopStyleColor();
+    } else {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.85f, 0.0f, 1.0f));
+        ImGui::Text("LOGIC LEVEL OUTPUT: 1 (HIGH)");
+        ImGui::PopStyleColor();
+    }
+    ImGui::TextDisabled("Signal Root-Mean-Square: %.3f V", signalRMS);
+
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.05f, 0.05f, 0.07f, 1.0f));
-    ImGui::PlotLines("##Oscilloscope", plotCache.data(), 120, 0, nullptr, -1.5f, 1.5f, ImVec2(-1, 80));
+    ImGui::PlotLines("##Oscilloscope", plotCache.data(), 120, 0, nullptr, -1.5f, 1.5f, ImVec2(-1, 65));
     ImGui::PopStyleColor();
 
     ImGui::End();
