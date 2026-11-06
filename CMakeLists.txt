@@ -3,7 +3,15 @@ project(WaveGuideNative CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -ffast-math")
+
+# --- Cross-Platform Compiler Fast-Math & Optimization Architecture ---
+if(MSVC)
+    # Windows MSVC optimization matrix
+    set(CMAKE_CXX_FLAGS_RELEASE "/O2 /fp:fast /Qpar")
+else()
+    # Linux & macOS GCC/Clang optimization matrix
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -ffast-math")
+endif()
 
 # Look inside local tracking subdirectory for nested module includes
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -18,7 +26,6 @@ find_package(OpenMP QUIET)
 include(Dependencies)
 
 # Construct the custom TinyEXR interface header wrapper
-# TINYEXR_USE_MINIZ=0 forces the single-header to use standard zlib definitions instead
 add_library(tinyexr_interface INTERFACE)
 target_include_directories(tinyexr_interface INTERFACE ${tinyexr_SOURCE_DIR})
 target_compile_definitions(tinyexr_interface INTERFACE TINYEXR_USE_MINIZ=0)
@@ -46,15 +53,19 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${imgui_SOURCE_DIR}/backends
 )
 
-# Process cross-platform linkage blocks
+# --- Cross-Platform Platform Target Linker Matrix ---
 target_link_libraries(${PROJECT_NAME} PRIVATE 
     ${SDL2_LIBRARIES}
     ${OPENGL_LIBRARIES}
     SDL2_image
     ZLIB::ZLIB
     tinyexr_interface
-    m
 )
+
+# Only explicitly pass Unix math library handle if not compiling under native Windows
+if(UNIX)
+    target_link_libraries(${PROJECT_NAME} PRIVATE m)
+endif()
 
 # Evaluate and wire hardware parallelization metrics
 if(OpenMP_CXX_FOUND)
@@ -64,3 +75,4 @@ if(OpenMP_CXX_FOUND)
 else()
     message(STATUS "OpenMP not found. Compiling fallback single-threaded build.")
 endif()
+
