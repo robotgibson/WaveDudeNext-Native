@@ -148,4 +148,10 @@ public:
 
     void setIntensityMode(bool enable) { showIntensityMode = enable; }
     bool getIntensityMode() const { return showIntensityMode; }
+
+    // --- Add these three lines for OpenEXR exporting ---
+    float* getPrimaryFieldData() { return gridCurrent.empty() ? nullptr : gridCurrent.data(); }
+    int getGridWidth() const { return width; }
+    int getGridHeight() const { return height; }
+
 };

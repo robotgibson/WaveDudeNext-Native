@@ -1,3 +1,4 @@
+#include "exr_exporter_ui.h"  // <--- Include the new split header file
 #include "imgui.h"
 #include "engine/WaveEngine.hpp"
 #include "UIRegistry.hpp"
@@ -128,5 +129,9 @@ void renderTuningDesk(WaveEngine& engine, char* pathBuffer, size_t bufferSize,
     ImGui::PlotLines("##Oscilloscope", plotCache.data(), 120, 0, nullptr, -1.5f, 1.5f, ImVec2(-1, 50));
     ImGui::PopStyleColor();
 
+    // Call split exporter code seamlessly inside our primary window layout lifetime 
+    renderEXRExportLayout(engine); 
+
     ImGui::End();
 }
+
