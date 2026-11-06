@@ -1,4 +1,5 @@
 #include "engine/WaveEngine.hpp"
+#include "engine/pml_boundary.h" // <--- Include our new split PML header file
 #include <algorithm>
 #include <iostream>
 #include <cmath>
@@ -10,6 +11,10 @@ WaveEngine::WaveEngine(int w, int h) : width(w), height(h),
     refractiveIndexMap(w * h, 1.0f), dampingMap(w * h, 0.0f)
 {
     IMG_Init(IMG_INIT_PNG);
+
+    // Call split boundary calculation layer cleanly inside the startup phase
+    initializePMLBoundaryLayers(dampingMap, width, height, 20);
+
     // FIXED: Swapped obsolete fallback name out to launch straight into your standalone AND gate profile
     switchToAndGate();
 }
@@ -51,3 +56,4 @@ void WaveEngine::clearIndependentSourceNodes() {
     customSourceNodes.clear(); 
     selectedNodeIndex = -1;
 }
+
