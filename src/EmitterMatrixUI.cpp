@@ -1,6 +1,6 @@
 #include "imgui.h"
 #include "engine/WaveEngine.hpp"
-#include "UIRegistry.hpp" // FIXED: Includes shared precision template rows directly
+#include "UIRegistry.hpp" 
 #include <string>
 #include <vector>
 
@@ -85,7 +85,8 @@ void renderEmitterMatrix(WaveEngine& engine, float& sliderAmp, float& sliderFreq
             PrecisionSlider<int>("Offset X", &activeLaser.offsetX, -400, 400, 1, "dX = %d");
             PrecisionSlider<int>("Offset Y", &activeLaser.offsetY, -400, 400, 1, "dY = %d");
             PrecisionSlider<float>("Gain",     &activeLaser.amplitudeScale, 0.0f, 3.0f, 0.05f, "Gain=%.2f");
-            PrecisionSlider<float>("Freq",     &activeLaser.frequencyOverride, 0.03f, 0.18f, 0.001f, "w=%.3f");
+            // FIXED: Added contextual ##Channel suffix descriptor block to distinguish this from global controls
+            PrecisionSlider<float>("Freq##Channel", &activeLaser.frequencyOverride, 0.03f, 0.18f, 0.001f, "w=%.3f");
             PrecisionSlider<float>("Phase",    &activeLaser.phaseOffsetDeg, -180.0f, 180.0f, 1.0f, "%.1f Deg");
         }
     }
@@ -93,7 +94,9 @@ void renderEmitterMatrix(WaveEngine& engine, float& sliderAmp, float& sliderFreq
     ImGui::Separator();
     ImGui::Text("Global Masters Scaling:");
     PrecisionSlider<float>("Power", &sliderAmp, 0.0f, 2.0f, 0.05f, "A=%.2f");
-    PrecisionSlider<float>("Freq",  &sliderFreq, 0.04f, 0.16f, 0.002f, "w=%.3f");
+    // FIXED: Added contextual ##Global suffix descriptor block to eliminate internal hashing overlap collisions
+    PrecisionSlider<float>("Freq##Global", &sliderFreq, 0.04f, 0.16f, 0.002f, "w=%.3f");
     engine.setGlobalAmplitude(sliderAmp);
     engine.setGlobalFrequency(sliderFreq);
 }
+

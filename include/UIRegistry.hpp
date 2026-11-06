@@ -39,6 +39,6 @@ inline bool PrecisionSlider(const char* label, T* value, T minVal, T maxVal, T s
     return changed;
 }
 
-// FIXED: Force the compiler to generate concrete, linkable binary definitions for both types globally
-template bool PrecisionSlider<int>(const char*, int*, int, int, int, const char*);
-template bool PrecisionSlider<float>(const char*, float*, float, float, float, const char*);
+// REMOVED explicit forced instantiation blocks from the header to resolve duplicate linker bindings globally.
+// Because the template function is marked inline, the compiler expands it implicitly at each include site.
+
