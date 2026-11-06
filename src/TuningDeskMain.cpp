@@ -1,5 +1,6 @@
 #include "imgui.h"
 #include "engine/WaveEngine.hpp"
+#include "UIRegistry.hpp"
 #include <vector>
 #include <cstring>
 #include <cmath>
@@ -7,10 +8,6 @@
 
 void renderPrismSettings(WaveEngine& engine);
 void renderEmitterMatrix(WaveEngine& engine, float& sliderAmp, float& sliderFreq, bool& bitA, bool& bitB, int& pX, int& pY);
-
-// Link access back to your shared precision arrow slider template mapping natively
-template<typename T>
-extern bool PrecisionSlider(const char* label, T* value, T minVal, T maxVal, T step, const char* format = nullptr);
 
 void renderTuningDesk(WaveEngine& engine, char* pathBuffer, size_t bufferSize, 
                       float& sliderAmp, float& sliderFreq, float& sliderPhase,
@@ -79,6 +76,8 @@ void renderTuningDesk(WaveEngine& engine, char* pathBuffer, size_t bufferSize,
     
     static std::vector<float> plotCache(120, 0.0f);
     static float comparisonThreshold = 0.35f;
+    static float targetFreqThreshold = 0.080f;
+    static float frequencyTolerance = 0.005f;
 
     float currentSample = engine.sampleAmplitude(pX, pY);
     if (!engine.getPauseState()) {
@@ -86,27 +85,47 @@ void renderTuningDesk(WaveEngine& engine, char* pathBuffer, size_t bufferSize,
         plotCache.push_back(currentSample);
     }
 
+    // 1. Calculate Intensity (RMS)
     float sumSquares = 0.0f;
     for (float val : plotCache) { sumSquares += val * val; }
     float signalRMS = std::sqrt(sumSquares / plotCache.size());
 
-    // FIXED: Upgraded threshold limit input to use PrecisionSlider tracking with 0.01 step jumps
-    PrecisionSlider<float>("Threshold", &comparisonThreshold, 0.01f, 1.20f, 0.01f, "Limit = %.2f");
-
-    bool isGateTriggered = (signalRMS >= comparisonThreshold);
-    if (!isGateTriggered) {
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.3f, 1.0f));
-        ImGui::Text("LOGIC LEVEL OUTPUT: 0 (LOW)");
-        ImGui::PopStyleColor();
-    } else {
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.85f, 0.0f, 1.0f));
-        ImGui::Text("LOGIC LEVEL OUTPUT: 1 (HIGH)");
-        ImGui::PopStyleColor();
+    // 2. Analyze Zero-Crossing Rate (ZCR) to calculate frequency
+    int zeroCrossings = 0;
+    for (size_t i = 1; i < plotCache.size(); ++i) {
+        if ((plotCache[i - 1] >= 0.0f && plotCache[i] < 0.0f) || 
+            (plotCache[i - 1] < 0.0f && plotCache[i] >= 0.0f)) {
+            zeroCrossings++;
+        }
     }
-    ImGui::TextDisabled("Signal Root-Mean-Square: %.3f V", signalRMS);
+    float measuredFrequency = (signalRMS > 0.02f) ? (zeroCrossings * 3.14159265f) / (plotCache.size() * 2.0f) : 0.0f;
+
+    // Render configuration sliders
+    PrecisionSlider<float>("Amp Limit", &comparisonThreshold, 0.01f, 1.20f, 0.01f, "Min A = %.2f");
+    PrecisionSlider<float>("Target w",   &targetFreqThreshold, 0.03f, 0.18f, 0.001f, "w = %.3f");
+
+    // FIXED: Split logic evaluation markers into separate, parallel metrics outputs
+    bool vLogicHigh = (signalRMS >= comparisonThreshold);
+    bool fLogicHigh = (signalRMS > 0.02f) && (std::abs(measuredFrequency - targetFreqThreshold) <= frequencyTolerance);
+
+    // 1. Render Voltage/Amplitude Logic State Row
+    if (!vLogicHigh) {
+        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.3f, 1.0f), "VOLTAGE  LOGIC (V): 0 (LOW)");
+    } else {
+        ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.0f, 1.0f), "VOLTAGE  LOGIC (V): 1 (HIGH)");
+    }
+
+    // 2. Render Spectral/Wavelength Logic State Row
+    if (!fLogicHigh) {
+        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.3f, 1.0f), "SPECTRAL LOGIC (F): 0 (LOW)");
+    } else {
+        ImGui::TextColored(ImVec4(0.2f, 0.8f, 1.0f, 1.0f), "SPECTRAL LOGIC (F): 1 (HIGH)");
+    }
+    
+    ImGui::TextDisabled("Measured: RMS=%.3f V | Freq w=%.3f", signalRMS, measuredFrequency);
 
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.05f, 0.05f, 0.07f, 1.0f));
-    ImGui::PlotLines("##Oscilloscope", plotCache.data(), 120, 0, nullptr, -1.5f, 1.5f, ImVec2(-1, 65));
+    ImGui::PlotLines("##Oscilloscope", plotCache.data(), 120, 0, nullptr, -1.5f, 1.5f, ImVec2(-1, 50));
     ImGui::PopStyleColor();
 
     ImGui::End();
