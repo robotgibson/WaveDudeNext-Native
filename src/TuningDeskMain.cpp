@@ -2,11 +2,15 @@
 #include "engine/WaveEngine.hpp"
 #include <vector>
 #include <cstring>
-#include <cmath>     // FIXED: Included cmath for std::sqrt validation support
+#include <cmath>
 #include <numeric>
 
 void renderPrismSettings(WaveEngine& engine);
 void renderEmitterMatrix(WaveEngine& engine, float& sliderAmp, float& sliderFreq, bool& bitA, bool& bitB, int& pX, int& pY);
+
+// Link access back to your shared precision arrow slider template mapping natively
+template<typename T>
+extern bool PrecisionSlider(const char* label, T* value, T minVal, T maxVal, T step, const char* format = nullptr);
 
 void renderTuningDesk(WaveEngine& engine, char* pathBuffer, size_t bufferSize, 
                       float& sliderAmp, float& sliderFreq, float& sliderPhase,
@@ -86,8 +90,8 @@ void renderTuningDesk(WaveEngine& engine, char* pathBuffer, size_t bufferSize,
     for (float val : plotCache) { sumSquares += val * val; }
     float signalRMS = std::sqrt(sumSquares / plotCache.size());
 
-    ImGui::SetNextItemWidth(-1);
-    ImGui::SliderFloat("##LimitTrack", &comparisonThreshold, 0.02f, 1.20f, "Threshold Limit = %.2f");
+    // FIXED: Upgraded threshold limit input to use PrecisionSlider tracking with 0.01 step jumps
+    PrecisionSlider<float>("Threshold", &comparisonThreshold, 0.01f, 1.20f, 0.01f, "Limit = %.2f");
 
     bool isGateTriggered = (signalRMS >= comparisonThreshold);
     if (!isGateTriggered) {

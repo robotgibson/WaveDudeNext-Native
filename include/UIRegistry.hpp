@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <type_traits>
 
-// FIXED: Encapsulated the precision step layout row template completely inside an include header
 template<typename T>
 inline bool PrecisionSlider(const char* label, T* value, T minVal, T maxVal, T step, const char* format = nullptr) {
     ImGui::PushID(label);
@@ -39,3 +38,7 @@ inline bool PrecisionSlider(const char* label, T* value, T minVal, T maxVal, T s
     ImGui::PopID();
     return changed;
 }
+
+// FIXED: Force the compiler to generate concrete, linkable binary definitions for both types globally
+template bool PrecisionSlider<int>(const char*, int*, int, int, int, const char*);
+template bool PrecisionSlider<float>(const char*, float*, float, float, float, const char*);
