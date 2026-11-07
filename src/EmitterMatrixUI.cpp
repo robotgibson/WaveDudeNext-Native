@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-void renderEmitterMatrix(WaveEngine& engine, float& sliderAmp, float& sliderFreq, bool& bitA, bool& bitB, int& pX, int& pY) {
+void renderEmitterMatrix(WaveEngine& engine, float& sliderAmp, float& sliderFreq, bool& /*bitA*/, bool& /*bitB*/, int& pX, int& pY) {
     auto& nodesList = engine.getCustomSourceNodes();
     const char* palettes[] = { "Classic Field Tone", "Green / Magenta Field", "Monochrome Radar Glow" };
     static int paletteIdx = 0;
@@ -38,22 +38,26 @@ void renderEmitterMatrix(WaveEngine& engine, float& sliderAmp, float& sliderFreq
         ImGui::BeginChild("##MatrixScrollContainer", ImVec2(-1, 100), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
         for (size_t i = 0; i < nodesList.size(); ++i) {
             std::string labelText = "Ch #" + std::to_string(i + 1);
-            if (engine.getActiveSceneMode() == 0) {
-                if (i == 0 || i == 2) labelText += " [Input A]";
-                else if (i == 1 || i == 4) labelText += " [Input B]";
-                else if (i == 3) labelText += " [Cancel Phase]";
+            
+            // Contextual labeling driven purely by position order arrays
+            if (engine.getActiveSceneMode() == 0) { // AND
+                if (i == 0)      labelText += " [Input A]";
+                else if (i == 1) labelText += " [Cancellation Ref]";
+                else if (i == 2) labelText += " [Input B]";
+            } else if (engine.getActiveSceneMode() == 4) { // NOT
+                if (i == 0)      labelText += " [Input A]";
+                else if (i == 1) labelText += " [Carrier Ref]";
+            } else if (engine.getActiveSceneMode() == 5) { // XOR
+                if (i == 0)      labelText += " [Input A]";
+                else if (i == 1) labelText += " [Input B]";
             } else {
                 int absX = engine.getGlobalOriginX() + nodesList[i].offsetX;
                 int absY = engine.getGlobalOriginY() + nodesList[i].offsetY;
                 labelText += " (Abs X:" + std::to_string(absX) + ", Y:" + std::to_string(absY) + ")";
             }
-            if (ImGui::Checkbox(labelText.c_str(), &nodesList[i].isActive)) {
-                if (engine.getActiveSceneMode() == 0) {
-                    if (i == 0 || i == 2) bitA = nodesList[i].isActive;
-                    if (i == 1 || i == 4) bitB = nodesList[i].isActive;
-                    engine.toggleInputs(bitA, bitB);
-                }
-            }
+            
+            // MODULAR DIRECT STATE CHECKBOX TRACKING (Stripped hardcoded routing variables)
+            ImGui::Checkbox(labelText.c_str(), &nodesList[i].isActive);
         }
         ImGui::EndChild();
         
@@ -85,7 +89,6 @@ void renderEmitterMatrix(WaveEngine& engine, float& sliderAmp, float& sliderFreq
             PrecisionSlider<int>("Offset X", &activeLaser.offsetX, -400, 400, 1, "dX = %d");
             PrecisionSlider<int>("Offset Y", &activeLaser.offsetY, -400, 400, 1, "dY = %d");
             PrecisionSlider<float>("Gain",     &activeLaser.amplitudeScale, 0.0f, 3.0f, 0.05f, "Gain=%.2f");
-            // FIXED: Added contextual ##Channel suffix descriptor block to distinguish this from global controls
             PrecisionSlider<float>("Freq##Channel", &activeLaser.frequencyOverride, 0.03f, 0.18f, 0.001f, "w=%.3f");
             PrecisionSlider<float>("Phase",    &activeLaser.phaseOffsetDeg, -180.0f, 180.0f, 1.0f, "%.1f Deg");
         }
@@ -94,7 +97,6 @@ void renderEmitterMatrix(WaveEngine& engine, float& sliderAmp, float& sliderFreq
     ImGui::Separator();
     ImGui::Text("Global Masters Scaling:");
     PrecisionSlider<float>("Power", &sliderAmp, 0.0f, 2.0f, 0.05f, "A=%.2f");
-    // FIXED: Added contextual ##Global suffix descriptor block to eliminate internal hashing overlap collisions
     PrecisionSlider<float>("Freq##Global", &sliderFreq, 0.04f, 0.16f, 0.002f, "w=%.3f");
     engine.setGlobalAmplitude(sliderAmp);
     engine.setGlobalFrequency(sliderFreq);

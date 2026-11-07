@@ -30,35 +30,29 @@ void WaveEngine::stepSimulation() {
     int gX = globalOriginX;
     int gY = globalOriginY;
 
+    // =========================================================================
+    // MODULAR EMITTER MATRIX (ZERO HARDCODED SCENE PATHS)
+    // =========================================================================
     for (size_t i = 0; i < customSourceNodes.size(); ++i) {
         auto& node = customSourceNodes[i];
 
-        // FIXED: Advance the clock phase value first so ALL sources stay synchronized regardless of whether they are active or muted
+        // Emitters advance phase clocks concurrently to maintain relative coherence sync
         node.phaseValue += node.frequencyOverride;
-
-        // Skip injection into the grid mesh fields if the user unchecks the toggle box, leaving clocks locked in phase
-        if (!node.isActive) continue;
         
         int absoluteX = std::clamp(gX + node.offsetX, 2, width - 3);
         int absoluteY = std::clamp(gY + node.offsetY, 2, height - 3);
         int gridIdx = absoluteY * width + absoluteX;
+
+        // If a node is deactivated via its UI checkbox, explicitly clear its grid injection cell
+        if (!node.isActive) {
+            next[gridIdx] = 0.0f;
+            continue;
+        }
         
         float radiansOffset = node.phaseOffsetDeg * (3.14159265f / 180.0f);
-
-        if (activeSceneMode == 0) { // AND Gate
-            if (i == 0)      next[gridIdx] = inputA_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
-            else if (i == 1) next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale); 
-            else if (i == 2) next[gridIdx] = inputB_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
-            else             next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale); 
-        } 
-        else if (activeSceneMode == 4) { // NOT Gate
-            if (i == 0)      next[gridIdx] = inputA_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
-            else if (i == 1) next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale); 
-            else             next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale); 
-        }
-        else {
-            next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale);
-        }
+        
+        // Pure wave injection mapping derived solely from active node configurations
+        next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale);
     }
 
     gridPrevious = gridCurrent;

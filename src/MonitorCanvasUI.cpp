@@ -5,9 +5,9 @@
 #include <cmath>
 
 void renderMonitorCanvas(WaveEngine& engine, GLuint texID, std::vector<uint32_t>& buffer, int& pX, int& pY) {
-    ImGui::SetNextWindowPos(ImVec2(320, 10), ImGuiCond_Always);
-    // FIXED: Shrunk down height matrix from 700 to 525 to clear layout tracking slots for the footer panel deck
-    ImGui::SetNextWindowSize(ImVec2(810, 525), ImGuiCond_Always);
+    // FIXED: Moved starting origin to 260 and expanded width to 870 to sit flush with the sidebar bounds
+    ImGui::SetNextWindowPos(ImVec2(260, 10), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(870, 485), ImGuiCond_Always);
     ImGui::Begin("Simulation Monitor", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
     
     ImVec2 canvasPos = ImGui::GetCursorScreenPos();
@@ -15,17 +15,28 @@ void renderMonitorCanvas(WaveEngine& engine, GLuint texID, std::vector<uint32_t>
     int gX = engine.getGlobalOriginX();
     int gY = engine.getGlobalOriginY();
     
-    ImGui::TextColored(ImVec4(0.0f, 0.9f, 1.0f, 1.0f), "Performance Metrics: %.1f FPS (%.2f ms/frame)", 
+    const char* sceneName = "Unknown Circuit";
+    int modeID = engine.getActiveSceneMode();
+    if (modeID == 0)      sceneName = "AND Gate Circuit";
+    else if (modeID == 3) sceneName = "OR Gate Circuit";
+    else if (modeID == 4) sceneName = "NOT Gate Circuit";
+    else if (modeID == 5) sceneName = "XOR Gate Circuit";
+    else if (modeID == 2) sceneName = "Glass Prism Layout";
+
+    ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "[ %s ]", sceneName);
+    ImGui::SameLine(220);
+
+    ImGui::TextColored(ImVec4(0.0f, 0.9f, 1.0f, 1.0f), "Perf. Metrics: %.1f FPS (%.2f ms/frame)", 
         ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
     
     ImGui::Spacing();
-    // Proportional downscale to map smoothly inside the shortened window canvas guidelines
-    ImGui::Image((ImTextureID)(intptr_t)texID, ImVec2(800, 460));
+    // Re-mapped dimensions to draw cleanly inside the wider monitor frame
+    ImGui::Image((ImTextureID)(intptr_t)texID, ImVec2(850, 420));
     
     if (ImGui::IsItemHovered()) {
         ImVec2 mousePos = ImGui::GetMousePos();
-        int clickedX = static_cast<int>(mousePos.x - canvasPos.x);
-        int clickedY = static_cast<int>((mousePos.y - (canvasPos.y + 24)) * (600.0f / 460.0f)); 
+        int clickedX = static_cast<int>((mousePos.x - canvasPos.x) * (800.0f / 850.0f));
+        int clickedY = static_cast<int>((mousePos.y - (canvasPos.y + 24)) * (600.0f / 420.0f)); 
 
         if (clickedX >= 5 && clickedX < 795 && clickedY >= 5 && clickedY < 595) {
             if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
@@ -49,7 +60,7 @@ void renderMonitorCanvas(WaveEngine& engine, GLuint texID, std::vector<uint32_t>
     ImVec2 contentOffsetPos = ImVec2(canvasPos.x, canvasPos.y + 24); 
     
     auto toScreen = [&](int worldX, int worldY) {
-        return ImVec2(contentOffsetPos.x + worldX, contentOffsetPos.y + worldY * (460.0f / 600.0f));
+        return ImVec2(contentOffsetPos.x + worldX * (850.0f / 800.0f), contentOffsetPos.y + worldY * (420.0f / 600.0f));
     };
 
     ImVec2 markerScreenPos = toScreen(pX, pY);
@@ -77,4 +88,3 @@ void renderMonitorCanvas(WaveEngine& engine, GLuint texID, std::vector<uint32_t>
     }
     ImGui::End();
 }
-

@@ -3,7 +3,7 @@
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
 #include "engine/WaveEngine.hpp"
-#include "zoom_pip_ui.h" // Includes unified footer panel layout handles
+#include "zoom_pip_ui.h" 
 #include <vector>
 #include <cstring>
 
@@ -12,6 +12,9 @@ void renderTuningDesk(WaveEngine& engine, char* pathBuffer, size_t bufferSize,
                       bool& bitA, bool& bitB, int& paletteIdx, int& pX, int& pY);
 
 void renderMonitorCanvas(WaveEngine& engine, GLuint texID, std::vector<uint32_t>& buffer, int& pX, int& pY);
+
+// Declare prototype link to trigger the configuration parser setup manually
+void syncUIPropertiesFromJSON(WaveEngine& engine, int targetSceneID, int& pX, int& pY);
 
 int main(int argc, char* argv[]) {
     AppWindow app("WaveGuide Native C++ Pro Studio", 1140, 720);
@@ -36,8 +39,15 @@ int main(int argc, char* argv[]) {
     bool running = true;
     float sAmp = 0.8f, sFreq = 0.08f, sPhase = 0.0f;
     bool bitA = true, bitB = true;
-    int paletteIdx = 0, pX = 620, pY = 300;
+    int paletteIdx = 0;
+    
+    // Launch placeholders that will be immediately updated from the JSON payload below
+    int pX = 0, pY = 0; 
     char pathBuffer[128] = "double_slit_experiment.png";
+
+    // FIXED: Force immediate JSON profile alignment pass for the AND Gate (ID: 0) on launch
+    engine.switchToAndGate();
+    syncUIPropertiesFromJSON(engine, 0, pX, pY);
 
     while (running) {
         SDL_Event event;
@@ -46,32 +56,25 @@ int main(int argc, char* argv[]) {
             if (event.type == SDL_QUIT) running = false;
         }
 
-        // 1. Wipe the hardware backbuffer canvas clean first thing
         app.clear(0.10f, 0.10f, 0.12f, 1.0f);
 
-        // 2. Advance the wave simulation physics and dump to pixel matrix arrays
         engine.stepSimulation();
         engine.updatePixels(pixelBuffer.data());
 
-        // 3. Securely bind and upload the texture frame stream BEFORE ImGui modifies state mappings
         glBindTexture(GL_TEXTURE_2D, waveTexture);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 800, 600, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixelBuffer.data());
 
-        // 4. Initialize the ImGui interface frame tree context loops
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-        // 5. Draw the sidebar configurations dashboard, viewports, and unified horizontal footer panel
         renderTuningDesk(engine, pathBuffer, sizeof(pathBuffer), sAmp, sFreq, sPhase, bitA, bitB, paletteIdx, pX, pY);
         renderMonitorCanvas(engine, waveTexture, pixelBuffer, pX, pY);
-        renderAnalyticsFooterPanel(engine, pixelBuffer, pX, pY); // FIXED: Invokes combined bottom docking frame pass
+        renderAnalyticsFooterPanel(engine, pixelBuffer, pX, pY); 
 
-        // 6. Draw structural overlay paths and flush graphic buffers
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         
-        // 7. Double-buffered presentation swap
         app.swap();
     }
 

@@ -4,13 +4,13 @@
       "id": 0,
       "name": "AND Gate Circuit",
       "global_frequency": 0.08,
-      "amp_limit": 0.055,
+      "amp_limit": 0.578,
       "probe_x": 620,
       "probe_y": 300,
-      "target_w": 0.080,
+      "target_w": 0.039,
       "sources": [
         { "x": 280, "y": 284, "phase": 0.0, "amplitude": 1.0, "active": true },
-        { "x": 280, "y": 300, "phase": 180.0, "amplitude": 0.625, "active": true },
+        { "x": 280, "y": 300, "phase": 180.0, "amplitude": 1.0, "active": true },
         { "x": 280, "y": 316, "phase": 0.0, "amplitude": 1.0, "active": true }
       ]
     },
@@ -55,3 +55,4 @@
     }
   ]
 }
+

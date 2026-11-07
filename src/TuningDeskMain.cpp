@@ -14,12 +14,12 @@
 void renderPrismSettings(WaveEngine& engine);
 void renderEmitterMatrix(WaveEngine& engine, float& sliderAmp, float& sliderFreq, bool& bitA, bool& bitB, int& pX, int& pY);
 
-// --- Lightweight Inline Static Configuration Profile Parser ---
-static void syncUIPropertiesFromJSON(WaveEngine& engine, int targetSceneID, int& pX, int& pY) {
+// FIXED: Removed the 'static' identifier keyword entirely so the symbol links globally across main.cpp compilation units
+void syncUIPropertiesFromJSON(WaveEngine& engine, int targetSceneID, int& pX, int& pY) {
     std::string configPath = "config/scene_profiles.json";
     std::ifstream file(configPath);
     if (!file.is_open()) {
-        file.open("../" + configPath); // Fallback lookup context for build/ tracking folders
+        file.open("../" + configPath); 
     }
     if (!file.is_open()) return;
 
@@ -64,83 +64,81 @@ void renderTuningDesk(WaveEngine& engine, char* pathBuffer, size_t bufferSize,
                       bool& bitA, bool& bitB, int& paletteIdx, int& pX, int& pY) {
     
     ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(300, 700), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(240, 700), ImGuiCond_Always);
     ImGui::Begin("Global Configuration Suite", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
     
-    // =========================================================================
-    // SECTION 1: SIMULATION SCENE PRESETS (DYNAMIC SELECTION WITH DUAL DOCKING UPDATES)
-    // =========================================================================
+    auto syncUIPersistenceBits = [&]() {
+        auto& nodes = engine.getCustomSourceNodes();
+        if (engine.getActiveSceneMode() == 0) { 
+            if (nodes.size() >= 1) bitA = nodes[0].isActive;
+            if (nodes.size() >= 3) bitB = nodes[2].isActive;
+        } else if (engine.getActiveSceneMode() == 4) { 
+            if (nodes.size() >= 1) bitA = nodes[0].isActive;
+        } else {
+            if (nodes.size() >= 1) bitA = nodes[0].isActive;
+            if (nodes.size() >= 2) bitB = nodes[1].isActive;
+        }
+    };
+
     if (ImGui::CollapsingHeader("Simulation Scene Profiles", ImGuiTreeNodeFlags_DefaultOpen)) {
-        if (ImGui::Button("AND Gate Circuit", ImVec2(134, 24))) {
+        if (ImGui::Button("AND Gate", ImVec2(104, 24))) {
             engine.switchToAndGate(); sliderFreq = 0.08f; engine.setGlobalFrequency(0.08f); engine.setSelectedNodeIndex(-1);
-            syncUIPropertiesFromJSON(engine, 0, pX, pY);
+            syncUIPropertiesFromJSON(engine, 0, pX, pY); syncUIPersistenceBits();
         }
         ImGui::SameLine();
-        if (ImGui::Button("OR Gate Circuit", ImVec2(134, 24))) {
+        if (ImGui::Button("OR Gate", ImVec2(104, 24))) {
             engine.switchToOrGate(); sliderFreq = 0.08f; engine.setGlobalFrequency(0.08f); engine.setSelectedNodeIndex(-1);
-            syncUIPropertiesFromJSON(engine, 3, pX, pY);
+            syncUIPropertiesFromJSON(engine, 3, pX, pY); syncUIPersistenceBits();
         }
-        if (ImGui::Button("NOT Gate Circuit", ImVec2(134, 24))) {
+        if (ImGui::Button("NOT Gate", ImVec2(104, 24))) {
             engine.switchToNotGate(); sliderFreq = 0.08f; engine.setGlobalFrequency(0.08f); engine.setSelectedNodeIndex(-1);
-            syncUIPropertiesFromJSON(engine, 4, pX, pY);
+            syncUIPropertiesFromJSON(engine, 4, pX, pY); syncUIPersistenceBits();
         }
         ImGui::SameLine();
-        if (ImGui::Button("XOR Gate Circuit", ImVec2(134, 24))) {
+        if (ImGui::Button("XOR Gate", ImVec2(104, 24))) {
             engine.switchToXorGate(); sliderFreq = 0.08f; engine.setGlobalFrequency(0.08f); engine.setSelectedNodeIndex(-1);
-            syncUIPropertiesFromJSON(engine, 5, pX, pY);
+            syncUIPropertiesFromJSON(engine, 5, pX, pY); syncUIPersistenceBits();
         }
 
         if (ImGui::Button("Glass Prism Layout", ImVec2(-1, 26))) {
             engine.switchToPrismScene(); sliderFreq = 0.07f; engine.setGlobalFrequency(0.07f); pX = 550; pY = 380; 
-            engine.setSelectedNodeIndex(-1);
-            engine.setTargetAmpLimit(0.055f);
-            engine.setTargetFreqThreshold(0.080f);
+            engine.setSelectedNodeIndex(-1); engine.setTargetAmpLimit(0.055f); engine.setTargetFreqThreshold(0.080f);
+            bitA = true; bitB = true;
         }
     }
 
-    // =========================================================================
-    // SECTION 2: FILE OPERATIONS & CUSTOM MAPS
-    // =========================================================================
     if (ImGui::CollapsingHeader("File Operations & Asset Canvas", ImGuiTreeNodeFlags_None)) {
-        if (ImGui::Button("Save Image Layout (PNG Snapshot)", ImVec2(-1, 28))) {
+        if (ImGui::Button("Save Image Layout (PNG)", ImVec2(-1, 28))) {
             engine.triggerSnapshotCapture();
         }
-        
         ImGui::Separator();
-        ImGui::Text("Load Custom Map Image (.png):");
+        ImGui::Text("Load Map Image (.png):");
         ImGui::SetNextItemWidth(-1);
         ImGui::InputText("##PathBox", pathBuffer, bufferSize);
-        if (ImGui::Button("Compile Custom Scene Canvas Map", ImVec2(-1, 28))) {
-            if (engine.loadSceneFromImage(pathBuffer)) {
-                pX = 400; pY = 300; engine.setSelectedNodeIndex(-1);
-            }
+        if (ImGui::Button("Compile Scene Canvas Map", ImVec2(-1, 28))) {
+            if (engine.loadSceneFromImage(pathBuffer)) { pX = 400; pY = 300; }
         }
     }
 
-    // =========================================================================
-    // SECTION 3: PROCEDURAL LAB ASSETS TOOLKIT
-    // =========================================================================
-    if (ImGui::CollapsingHeader("Procedural Lab Asset Toolkit", ImGuiTreeNodeFlags_None)) {
+    if (ImGui::CollapsingHeader("Procedural Lab Assets", ImGuiTreeNodeFlags_None)) {
         if (ImGui::Button("Load Double Slit Layout", ImVec2(-1, 26))) {
             engine.generateNativeDoubleSlitPNG(); std::strncpy(pathBuffer, "double_slit_experiment.png", bufferSize);
-            if (engine.loadSceneFromImage(pathBuffer)) { pX = 320; pY = 300; }
+            if (engine.loadSceneFromImage(pathBuffer)) { pX = 320; pY = 300; bitA = true; bitB = true; }
         }
         if (ImGui::Button("Load Spherical Ball Lens", ImVec2(-1, 26))) {
             engine.generateNativeBallLensPNG(); std::strncpy(pathBuffer, "focusing_ball_lens.png", bufferSize);
-            if (engine.loadSceneFromImage(pathBuffer)) { pX = 580; pY = 300; }
+            if (engine.loadSceneFromImage(pathBuffer)) { pX = 580; pY = 300; bitA = true; bitB = true; }
         }
-        if (ImGui::Button("Load Fiber Network Splitter", ImVec2(-1, 26))) {
+        if (ImGui::Button("Load Fiber Splitter", ImVec2(-1, 26))) {
             engine.generateNativeFiberNetworkPNG(); std::strncpy(pathBuffer, "fiber_splitter_network.png", bufferSize);
-            if (engine.loadSceneFromImage(pathBuffer)) { pX = 450; pY = 300; }
+            if (engine.loadSceneFromImage(pathBuffer)) { pX = 450; pY = 300; bitA = true; bitB = true; }
         }
     }
 
     renderPrismSettings(engine);
     renderEmitterMatrix(engine, sliderAmp, sliderFreq, bitA, bitB, pX, pY);
-
     renderStencilPrecisionControls(engine);
     renderEXRExportLayout(engine); 
 
     ImGui::End();
 }
-
