@@ -14,7 +14,6 @@
 void renderPrismSettings(WaveEngine& engine);
 void renderEmitterMatrix(WaveEngine& engine, float& sliderAmp, float& sliderFreq, bool& bitA, bool& bitB, int& pX, int& pY);
 
-// FIXED: Removed the 'static' identifier keyword entirely so the symbol links globally across main.cpp compilation units
 void syncUIPropertiesFromJSON(WaveEngine& engine, int targetSceneID, int& pX, int& pY) {
     std::string configPath = "config/scene_profiles.json";
     std::ifstream file(configPath);
@@ -80,6 +79,9 @@ void renderTuningDesk(WaveEngine& engine, char* pathBuffer, size_t bufferSize,
         }
     };
 
+    // -------------------------------------------------------------------------
+    // CATEGORY 1: SCENE PRESETS (EXPANDED BY DEFAULT)
+    // -------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Simulation Scene Profiles", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (ImGui::Button("AND Gate", ImVec2(104, 24))) {
             engine.switchToAndGate(); sliderFreq = 0.08f; engine.setGlobalFrequency(0.08f); engine.setSelectedNodeIndex(-1);
@@ -105,9 +107,21 @@ void renderTuningDesk(WaveEngine& engine, char* pathBuffer, size_t bufferSize,
             engine.setSelectedNodeIndex(-1); engine.setTargetAmpLimit(0.055f); engine.setTargetFreqThreshold(0.080f);
             bitA = true; bitB = true;
         }
+
+        if (ImGui::Button("Optics Reflection Bench", ImVec2(-1, 26))) {
+            engine.switchToOpticsBenchScene();
+            sliderFreq = 0.08f; engine.setGlobalFrequency(0.08f);
+            pX = 460; pY = 300;
+            engine.setTargetAmpLimit(0.120f);
+            engine.setTargetFreqThreshold(0.080f);
+            bitA = true; bitB = true;
+        }
     }
 
-    if (ImGui::CollapsingHeader("File Operations & Asset Canvas", ImGuiTreeNodeFlags_None)) {
+    // -------------------------------------------------------------------------
+    // CATEGORY 2: FILE STORAGE (COLLAPSED BY DEFAULT / SHORTENED NAME)
+    // -------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("File Operations", ImGuiTreeNodeFlags_None)) {
         if (ImGui::Button("Save Image Layout (PNG)", ImVec2(-1, 28))) {
             engine.triggerSnapshotCapture();
         }
@@ -120,6 +134,9 @@ void renderTuningDesk(WaveEngine& engine, char* pathBuffer, size_t bufferSize,
         }
     }
 
+    // -------------------------------------------------------------------------
+    // CATEGORY 3: LABORATORY TEMPLATES (COLLAPSED BY DEFAULT)
+    // -------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Procedural Lab Assets", ImGuiTreeNodeFlags_None)) {
         if (ImGui::Button("Load Double Slit Layout", ImVec2(-1, 26))) {
             engine.generateNativeDoubleSlitPNG(); std::strncpy(pathBuffer, "double_slit_experiment.png", bufferSize);
@@ -135,10 +152,28 @@ void renderTuningDesk(WaveEngine& engine, char* pathBuffer, size_t bufferSize,
         }
     }
 
-    renderPrismSettings(engine);
-    renderEmitterMatrix(engine, sliderAmp, sliderFreq, bitA, bitB, pX, pY);
-    renderStencilPrecisionControls(engine);
-    renderEXRExportLayout(engine); 
+    // -------------------------------------------------------------------------
+    // CATEGORY 4: COMPONENT CONFIGURATION MATRIX (COLLAPSED BY DEFAULT)
+    // -------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Hardware Component Matrix", ImGuiTreeNodeFlags_None)) {
+        renderPrismSettings(engine);
+
+        bool showAnchor = engine.getShowOriginAnchor();
+        if (ImGui::Checkbox("Show Cluster Origin Anchor", &showAnchor)) {
+            engine.setShowOriginAnchor(showAnchor);
+        }
+        ImGui::Spacing();
+
+        renderEmitterMatrix(engine, sliderAmp, sliderFreq, bitA, bitB, pX, pY);
+    }
+
+    // -------------------------------------------------------------------------
+    // CATEGORY 5: SIMULATION SPEED & PRECISION EXPORTERS (COLLAPSED BY DEFAULT)
+    // -------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Execution & Telemetry Bounds", ImGuiTreeNodeFlags_None)) {
+        renderStencilPrecisionControls(engine);
+        renderEXRExportLayout(engine); 
+    }
 
     ImGui::End();
 }
