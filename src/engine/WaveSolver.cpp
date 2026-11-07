@@ -32,9 +32,12 @@ void WaveEngine::stepSimulation() {
 
     for (size_t i = 0; i < customSourceNodes.size(); ++i) {
         auto& node = customSourceNodes[i];
-        if (!node.isActive) continue;
 
+        // FIXED: Advance the clock phase value first so ALL sources stay synchronized regardless of whether they are active or muted
         node.phaseValue += node.frequencyOverride;
+
+        // Skip injection into the grid mesh fields if the user unchecks the toggle box, leaving clocks locked in phase
+        if (!node.isActive) continue;
         
         int absoluteX = std::clamp(gX + node.offsetX, 2, width - 3);
         int absoluteY = std::clamp(gY + node.offsetY, 2, height - 3);
@@ -46,12 +49,12 @@ void WaveEngine::stepSimulation() {
             if (i == 0)      next[gridIdx] = inputA_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
             else if (i == 1) next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale); 
             else if (i == 2) next[gridIdx] = inputB_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
-            else             next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale); // FIXED: Fallback lets added sources emit waves
+            else             next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale); 
         } 
         else if (activeSceneMode == 4) { // NOT Gate
             if (i == 0)      next[gridIdx] = inputA_Active ? std::sin(node.phaseValue) * (globalAmplitude * node.amplitudeScale) : 0.0f;
             else if (i == 1) next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale); 
-            else             next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale); // FIXED: Fallback lets added sources emit waves
+            else             next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale); 
         }
         else {
             next[gridIdx] = std::sin(node.phaseValue + radiansOffset) * (globalAmplitude * node.amplitudeScale);

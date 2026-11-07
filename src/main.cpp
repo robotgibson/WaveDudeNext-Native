@@ -3,6 +3,7 @@
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
 #include "engine/WaveEngine.hpp"
+#include "zoom_pip_ui.h" // Includes unified footer panel layout handles
 #include <vector>
 #include <cstring>
 
@@ -52,7 +53,7 @@ int main(int argc, char* argv[]) {
         engine.stepSimulation();
         engine.updatePixels(pixelBuffer.data());
 
-        // 3. FIXED: Securely bind and upload the texture frame stream BEFORE ImGui modifies state mappings
+        // 3. Securely bind and upload the texture frame stream BEFORE ImGui modifies state mappings
         glBindTexture(GL_TEXTURE_2D, waveTexture);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 800, 600, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixelBuffer.data());
 
@@ -61,9 +62,10 @@ int main(int argc, char* argv[]) {
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-        // 5. Draw the sidebar configurations dashboard and viewport windows
+        // 5. Draw the sidebar configurations dashboard, viewports, and unified horizontal footer panel
         renderTuningDesk(engine, pathBuffer, sizeof(pathBuffer), sAmp, sFreq, sPhase, bitA, bitB, paletteIdx, pX, pY);
         renderMonitorCanvas(engine, waveTexture, pixelBuffer, pX, pY);
+        renderAnalyticsFooterPanel(engine, pixelBuffer, pX, pY); // FIXED: Invokes combined bottom docking frame pass
 
         // 6. Draw structural overlay paths and flush graphic buffers
         ImGui::Render();

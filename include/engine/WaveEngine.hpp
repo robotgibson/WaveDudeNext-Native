@@ -99,6 +99,10 @@ private:
 
     StencilPrecision activeStencilMode = StencilPrecision::FourthOrder;
 
+    // Shared Analytics Targets Persistent Properties State Vectors
+    float targetAmpLimitValue = 0.055f;
+    float targetFreqThresholdValue = 0.080f;
+
     void exportSurfaceToPNG(const std::string& filename, const std::vector<uint8_t>& rleBuffer);
 
 public:
@@ -162,5 +166,10 @@ public:
 
     void setStencilPrecision(StencilPrecision mode) { activeStencilMode = mode; }
     StencilPrecision getStencilPrecision() const { return activeStencilMode; }
-};
 
+    // Analytics Targets Interface Sync Hooks
+    float getTargetAmpLimit() const { return targetAmpLimitValue; }
+    void setTargetAmpLimit(float limit) { targetAmpLimitValue = limit; }
+    float getTargetFreqThreshold() const { return targetFreqThresholdValue; }
+    void setTargetFreqThreshold(float freq) { targetFreqThresholdValue = freq; }
+};

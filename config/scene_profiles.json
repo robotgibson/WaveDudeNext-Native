@@ -1,0 +1,57 @@
+{
+  "scenes": [
+    {
+      "id": 0,
+      "name": "AND Gate Circuit",
+      "global_frequency": 0.08,
+      "amp_limit": 0.055,
+      "probe_x": 620,
+      "probe_y": 300,
+      "target_w": 0.080,
+      "sources": [
+        { "x": 280, "y": 284, "phase": 0.0, "amplitude": 1.0, "active": true },
+        { "x": 280, "y": 300, "phase": 180.0, "amplitude": 0.625, "active": true },
+        { "x": 280, "y": 316, "phase": 0.0, "amplitude": 1.0, "active": true }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "OR Gate Circuit",
+      "global_frequency": 0.08,
+      "amp_limit": 0.040,
+      "probe_x": 620,
+      "probe_y": 300,
+      "target_w": 0.080,
+      "sources": [
+        { "x": 280, "y": 265, "phase": 0.0, "amplitude": 1.0, "active": true },
+        { "x": 280, "y": 335, "phase": -30.0, "amplitude": 1.0, "active": true }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "NOT Gate Circuit",
+      "global_frequency": 0.08,
+      "amp_limit": 0.050,
+      "probe_x": 620,
+      "probe_y": 300,
+      "target_w": 0.080,
+      "sources": [
+        { "x": 280, "y": 284, "phase": 0.0, "amplitude": 1.0, "active": true },
+        { "x": 280, "y": 300, "phase": 180.0, "amplitude": 1.0, "active": true }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "XOR Gate Circuit",
+      "global_frequency": 0.08,
+      "amp_limit": 0.030,
+      "probe_x": 650,
+      "probe_y": 300,
+      "target_w": 0.039,
+      "sources": [
+        { "x": 280, "y": 265, "phase": 0.0, "amplitude": 1.0, "active": true },
+        { "x": 280, "y": 335, "phase": 180.0, "amplitude": 1.0, "active": true }
+      ]
+    }
+  ]
+}
